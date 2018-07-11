@@ -16,6 +16,8 @@
 package com.google.firebase.udacity.friendlychat;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -30,6 +32,9 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -59,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
 
     //Reference particular point in the database, in our case, Messages
     private DatabaseReference mMessagesDatabaseReference;
+
+    private ChildEventListener mChildEventListener;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +135,37 @@ public class MainActivity extends AppCompatActivity {
                 // Clear input box
                 mMessageEditText.setText("");
             }
-        });
+        });mChildEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                //dataSnapshot contains the most recent message in the Firebase that triggered onChildAdded
+                //The datasnapshot.getValue deserialize the data and returns a value of type FriendlyMessage
+                FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
+
+                //Add the newly gotten message to the adapter
+                mMessageAdapter.add(friendlyMessage);
+
+            }
+            @Override
+            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
+                mMessageAdapter.add(friendlyMessage);
+            }
+            @Override
+            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+            }
+            @Override
+            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
+        };
+        //This means that I want to add Event Listeners to the Database reference (messages)
+        //mChildEventListener is passed to perform methods declared
+        mMessagesDatabaseReference.addChildEventListener(mChildEventListener);
+
     }
 
     @Override
@@ -141,4 +179,5 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         return super.onOptionsItemSelected(item);
     }
+
 }
