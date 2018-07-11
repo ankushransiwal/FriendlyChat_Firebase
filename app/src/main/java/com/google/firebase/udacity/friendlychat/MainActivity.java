@@ -30,6 +30,9 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,6 +52,14 @@ public class MainActivity extends AppCompatActivity {
 
     private String mUsername;
 
+    //Create Reference to Firebase class to acces them in project
+
+    //Creates an entry point in the database
+    private FirebaseDatabase mFirebaseDatabase;
+
+    //Reference particular point in the database, in our case, Messages
+    private DatabaseReference mMessagesDatabaseReference;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
         mPhotoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
         mMessageEditText = (EditText) findViewById(R.id.messageEditText);
         mSendButton = (Button) findViewById(R.id.sendButton);
+
+        //To get the instance if the class : Provides an entry point
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+        //Use the above reference to access a particular portion (Messages) of the database
+        mMessagesDatabaseReference = mFirebaseDatabase.getReference().child("messages");
 
         // Initialize message ListView and its adapter
         List<FriendlyMessage> friendlyMessages = new ArrayList<>();
@@ -105,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 // TODO: Send messages on click
-
+                
                 // Clear input box
                 mMessageEditText.setText("");
             }
