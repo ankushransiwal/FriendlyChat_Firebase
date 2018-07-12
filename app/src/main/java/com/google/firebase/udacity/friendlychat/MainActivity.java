@@ -15,6 +15,7 @@
  */
 package com.google.firebase.udacity.friendlychat;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -149,46 +150,18 @@ public class MainActivity extends AppCompatActivity {
                 mMessageEditText.setText("");
             }
         });
-        mChildEventListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
 
-                //dataSnapshot contains the most recent message in the Firebase that triggered onChildAdded
-                //The datasnapshot.getValue deserialize the data and returns a value of type FriendlyMessage
-                FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
 
-                //Add the newly gotten message to the adapter
-                mMessageAdapter.add(friendlyMessage);
-
-            }
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
-                mMessageAdapter.add(friendlyMessage);
-            }
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-            }
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-            }
-        };
-        //This means that I want to add Event Listeners to the Database reference (messages)
-        //mChildEventListener is passed to perform methods declared
-        mMessagesDatabaseReference.addChildEventListener(mChildEventListener);
 
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
                 if(user!= null){
-                    //user is signed in
-                    Toast.makeText(MainActivity.this, "The user is signed in. Welcome to FriendlyChat!", Toast.LENGTH_SHORT).show();
+                onSignedInInitialize(user.getDisplayName());
                 }
                 else{
+                    onSignedOutCleanup();
                     //user is signed out
                     startActivityForResult(
                             AuthUI.getInstance()
@@ -221,13 +194,90 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onPause(){
         super.onPause();
-        mFirebaseAuth.removeAuthStateListener(mAuthStateListener);
+        if (mAuthStateListener != null){
+            mFirebaseAuth.removeAuthStateListener(mAuthStateListener);
+        }
+        detachDatabaseListener();
+        mMessageAdapter.clear();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCOde, Intent data){
+        super.onActivityResult(requestCode,resultCOde,data);
+        if(requestCode == RC_SIGN_IN){
+            if(resultCOde == RESULT_OK){
+                Toast.makeText(this, "Signed In", Toast.LENGTH_SHORT).show();
+            }
+            else if(requestCode == RESULT_CANCELED){
+                    Toast.makeText(this, "Sign In Cancelled", Toast.LENGTH_SHORT).show();
+                    finish();
+            }
+
+        }
+
     }
 
     @Override
     public void onResume(){
         super.onResume();
         mFirebaseAuth.addAuthStateListener(mAuthStateListener);
+    }
+
+    public void onSignedInInitialize(String username){
+        mUsername = username;
+        attachDatabaseListener();
+
+    }
+
+    public void onSignedOutCleanup(){
+        mUsername = ANONYMOUS;
+        mMessageAdapter.clear();
+        detachDatabaseListener();
+
+    }
+
+    public void attachDatabaseListener(){
+
+        if(mChildEventListener == null){
+            mChildEventListener = new ChildEventListener() {
+                @Override
+                public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
+                    //dataSnapshot contains the most recent message in the Firebase that triggered onChildAdded
+                    //The datasnapshot.getValue deserialize the data and returns a value of type FriendlyMessage
+                    FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
+
+                    //Add the newly gotten message to the adapter
+                    mMessageAdapter.add(friendlyMessage);
+
+                }
+                @Override
+                public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                    FriendlyMessage friendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
+                    mMessageAdapter.add(friendlyMessage);
+                }
+                @Override
+                public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                }
+                @Override
+                public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                }
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+                }
+            };
+            //This means that I want to add Event Listeners to the Database reference (messages)
+            //mChildEventListener is passed to perform methods declared
+            mMessagesDatabaseReference.addChildEventListener(mChildEventListener);
+        }
+
+    }
+
+    public void detachDatabaseListener(){
+        if(mChildEventListener != null) {
+            mMessagesDatabaseReference.removeEventListener(mChildEventListener);
+            mChildEventListener = null;
+        }
     }
 
 }
